@@ -2,7 +2,13 @@
 # Copyright (c) Swarm Library Maintainers.
 # SPDX-License-Identifier: MIT
 
-set -e
+set -eauo pipefail
+
+function get-memberlist-advertise-addr() {
+  local memberlist_subnet=$1
+  local memberlist_ignore_subnet=${2:+'| exclude "network" "'$2'"'}
+  sockaddr eval 'GetPrivateInterfaces | include "network" "'$memberlist_subnet'" '$memberlist_ignore_subnet' | attr "address"'
+}
 
 DOCKERSWARM_STARTUP_DELAY=15
 
@@ -56,9 +62,12 @@ GF_LOKI_LOGFORMAT=${GF_LOKI_LOGFORMAT:-"logfmt"}
 # We suggest setting this to 3
 GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR=${GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR:-2}
 
-
+# memberlist uses a gossip protocol to propagate information to all the nodes in the cluster.
+# Guaranteed the eventual consistency of the key-value store contents.
+# https://grafana.com/docs/loki/latest/get-started/hash-rings/
 GF_LOKI_MEMBERLIST_SUBNET=${GF_LOKI_MEMBERLIST_SUBNET:-"10.0.0.0/16"}
-GF_LOKI_MEMBERLIST_ADVERTISE_ADDR=$(sockaddr eval 'GetPrivateInterfaces | include "network" "'${GF_LOKI_MEMBERLIST_SUBNET}'" | attr "address"')
+GF_LOKI_MEMBERLIST_IGNORE_SUBNET=${GF_LOKI_MEMBERLIST_IGNORE_SUBNET}
+GF_LOKI_MEMBERLIST_ADVERTISE_ADDR=$(get-memberlist-advertise-addr)
 
 # -- Config file contents for Promtail.
 echo "Generate configuration file for Grafana Loki..."
