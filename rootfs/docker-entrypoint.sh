@@ -51,7 +51,12 @@ GF_LOKI_LOGLEVEL=${GF_LOKI_LOGLEVEL:-"info"}
 # Valid formats: `logfmt, json`
 GF_LOKI_LOGFORMAT=${GF_LOKI_LOGFORMAT:-"logfmt"}
 
-GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR=${GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR:-3}
+# The replication factor, which has already been mentioned,
+# is how many copies of the log data Loki should make to prevent losing it before flushing to storage.
+# We suggest setting this to 3
+GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR=${GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR:-2}
+
+
 GF_LOKI_MEMBERLIST_SUBNET=${GF_LOKI_MEMBERLIST_SUBNET:-"10.0.0.0/16"}
 GF_LOKI_MEMBERLIST_ADVERTISE_ADDR=$(sockaddr eval 'GetAllInterfaces | include "network" "'${GF_LOKI_MEMBERLIST_SUBNET}'" | attr "address"')
 
