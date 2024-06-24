@@ -58,7 +58,7 @@ GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR=${GF_LOKI_COMMON_STORAGE_RING_REP
 
 
 GF_LOKI_MEMBERLIST_SUBNET=${GF_LOKI_MEMBERLIST_SUBNET:-"10.0.0.0/16"}
-GF_LOKI_MEMBERLIST_ADVERTISE_ADDR=$(sockaddr eval 'GetAllInterfaces | include "network" "'${GF_LOKI_MEMBERLIST_SUBNET}'" | attr "address"')
+GF_LOKI_MEMBERLIST_ADVERTISE_ADDR=$(sockaddr eval 'GetPrivateInterfaces | include "network" "'${GF_LOKI_MEMBERLIST_SUBNET}'" | attr "address"')
 
 # -- Config file contents for Promtail.
 echo "Generate configuration file for Grafana Loki..."
