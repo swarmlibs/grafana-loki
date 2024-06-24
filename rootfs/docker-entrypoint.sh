@@ -4,6 +4,8 @@
 
 set -e
 
+DOCKERSWARM_STARTUP_DELAY=15
+
 # Docker Swarm service template variables
 #  - DOCKERSWARM_SERVICE_ID={{.Service.ID}}
 #  - DOCKERSWARM_SERVICE_NAME={{.Service.Name}}
@@ -37,6 +39,9 @@ if [ -z "$DOCKERSWARM_SERVICE_ID" ] || [ -z "$DOCKERSWARM_SERVICE_NAME" ] || [ -
   exit 1
 fi
 
+echo "==> [Docker Swarm Entrypoint] waiting for Docker Swarm to configure the network and DNS resolution... (${DOCKERSWARM_STARTUP_DELAY}s)"
+sleep ${DOCKERSWARM_STARTUP_DELAY}
+
 GF_LOKI_CONFIG_FILE="/etc/loki/local-config.yaml"
 
 # -- The log level of the Promtail server
@@ -47,7 +52,7 @@ GF_LOKI_LOGLEVEL=${GF_LOKI_LOGLEVEL:-"info"}
 GF_LOKI_LOGFORMAT=${GF_LOKI_LOGFORMAT:-"logfmt"}
 
 GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR=${GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR:-3}
-GF_LOKI_MEMBERLIST_ADVERTISE_ADDR=$(sockaddr eval 'GetAllInterfaces | include "network" "10.20.0.0/24" | attr "address"')
+GF_LOKI_MEMBERLIST_ADVERTISE_ADDR=$(sockaddr eval 'GetAllInterfaces | include "network" "10.0.0.0/24" | attr "address"')
 
 # -- Config file contents for Promtail.
 echo "Generate configuration file for Grafana Loki..."
