@@ -46,6 +46,9 @@ GF_LOKI_LOGLEVEL=${GF_LOKI_LOGLEVEL:-"info"}
 # Valid formats: `logfmt, json`
 GF_LOKI_LOGFORMAT=${GF_LOKI_LOGFORMAT:-"logfmt"}
 
+GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR=${GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR:-3}
+GF_LOKI_MEMBERLIST_ADVERTISE_ADDR=$(sockaddr eval 'GetAllInterfaces | include "network" "10.20.0.0/24" | attr "address"')
+
 # -- Config file contents for Promtail.
 echo "Generate configuration file for Grafana Loki..."
 mkdir -p $(dirname ${GF_LOKI_CONFIG_FILE})
@@ -64,7 +67,7 @@ common:
     filesystem:
       chunks_directory: /loki/chunks
       rules_directory: /loki/rules
-  replication_factor: 1
+  replication_factor: ${GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR}
 
 query_range:
   results_cache:
@@ -112,6 +115,8 @@ if [ "$1" = "" ]; then
     set -- loki \
       -config.file=${GF_LOKI_CONFIG_FILE} \
       -common.storage.ring.store=memberlist \
+      -common.storage.ring.instance-addr="${GF_LOKI_MEMBERLIST_ADVERTISE_ADDR}" \
+      -memberlist.advertise-addr="${GF_LOKI_MEMBERLIST_ADVERTISE_ADDR}" \
       -memberlist.join="dns+tasks.${DOCKERSWARM_SERVICE_NAME}:7946" \
       -memberlist.rejoin-interval=30s \
       -memberlist.dead-node-reclaim-time=1m
