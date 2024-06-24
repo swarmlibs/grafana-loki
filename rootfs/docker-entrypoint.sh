@@ -52,7 +52,8 @@ GF_LOKI_LOGLEVEL=${GF_LOKI_LOGLEVEL:-"info"}
 GF_LOKI_LOGFORMAT=${GF_LOKI_LOGFORMAT:-"logfmt"}
 
 GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR=${GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR:-3}
-GF_LOKI_MEMBERLIST_ADVERTISE_ADDR=$(sockaddr eval 'GetAllInterfaces | include "network" "10.0.0.0/24" | attr "address"')
+GF_LOKI_MEMBERLIST_SUBNET=${GF_LOKI_MEMBERLIST_SUBNET:-"10.0.0.0/16"}
+GF_LOKI_MEMBERLIST_ADVERTISE_ADDR=$(sockaddr eval 'GetAllInterfaces | include "network" "'${GF_LOKI_MEMBERLIST_SUBNET}'" | attr "address"')
 
 # -- Config file contents for Promtail.
 echo "Generate configuration file for Grafana Loki..."
