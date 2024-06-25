@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/swarmlibs/dockerstack-schema/main/schema/dockerstack-spec.json
+
+x-default-logging: &x-default-logging
+  options:
+    max-size: "12m"
+    max-file: "5"
+  driver: json-file
+
+x-deploy: &x-deploy
+  mode: global
+  placement:
+    max_replicas_per_node: 1
+
+services:
+
+  # ====================================================
+  # Grafana Dashboard
+  # https://github.com/grafana/grafana
+  # ====================================================
+
+  loki:
+    image: swarmlibs/grafana-loki:main
+    environment:
+      - DOCKERSWARM_SERVICE_ID={{.Service.ID}}
+      - DOCKERSWARM_SERVICE_NAME={{.Service.Name}}
+      - DOCKERSWARM_NODE_ID={{.Node.ID}}
+      - DOCKERSWARM_NODE_HOSTNAME={{.Node.Hostname}}
+      - DOCKERSWARM_TASK_ID={{.Task.ID}}
+      - DOCKERSWARM_TASK_NAME={{.Task.Name}}
+      - DOCKERSWARM_TASK_SLOT={{.Task.Slot}}
+      - DOCKERSWARM_STACK_NAMESPACE={{ index .Service.Labels "com.docker.stack.namespace"}}
+    deploy: *x-deploy
+    logging: *x-default-logging
+    hostname: replica-{{.Task.Slot}}.grafana-loki.internal
+    networks:
+      grafana:
+    volumes:
+      - grafana-loki-data:/loki
+
+  loki-gateway:
+    image: swarmlibs/docker-task-proxy:main
+    environment:
+      - TARGET_TASK_ADDR=replica-{{.Task.Slot}}.grafana-loki.internal:3100
+    deploy:
+      <<: *x-deploy
+      labels:
+        io.prometheus.enabled: "true"
+        io.prometheus.job_name: "loki"
+    logging: *x-default-logging
+    hostname: grafana-loki.svc.cluster.local
+    ports:
+      - published: 3100
+        target: 80
+    networks:
+      grafana:
+      logstack_gwnetwork:
+      prometheus_gwnetwork:
+      dockerswarm_ingress:
+    depends_on:
+      - loki
+
+volumes:
+  grafana-loki-data:
+
+networks:
+  grafana:
+    # Internal network for Grafana services
+  logstack_gwnetwork:
+    name: logstack_gwnetwork
+    external: true
+  prometheus_gwnetwork:
+    name: prometheus_gwnetwork
+    external: true
+  dockerswarm_ingress:
+    name: dockerswarm_ingress
+    external: true
