@@ -2,13 +2,7 @@
 # Copyright (c) Swarm Library Maintainers.
 # SPDX-License-Identifier: MIT
 
-set -eauo pipefail
-
-function get-memberlist-advertise-addr() {
-  local memberlist_subnet=$1
-  local memberlist_ignore_subnet=${2:+'| exclude "network" "'$2'"'}
-  sockaddr eval 'GetPrivateInterfaces | include "network" "'$memberlist_subnet'" '$memberlist_ignore_subnet' | attr "address"'
-}
+set -eao pipefail
 
 DOCKERSWARM_STARTUP_DELAY=15
 
@@ -60,14 +54,16 @@ GF_LOKI_LOGFORMAT=${GF_LOKI_LOGFORMAT:-"logfmt"}
 # The replication factor, which has already been mentioned,
 # is how many copies of the log data Loki should make to prevent losing it before flushing to storage.
 # We suggest setting this to 3
-GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR=${GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR:-2}
+GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR=${GF_LOKI_COMMON_STORAGE_RING_REPLICATION_FACTOR:-1}
 
 # memberlist uses a gossip protocol to propagate information to all the nodes in the cluster.
 # Guaranteed the eventual consistency of the key-value store contents.
 # https://grafana.com/docs/loki/latest/get-started/hash-rings/
-GF_LOKI_MEMBERLIST_SUBNET=${GF_LOKI_MEMBERLIST_SUBNET:-"10.0.0.0/16"}
-GF_LOKI_MEMBERLIST_IGNORE_SUBNET=${GF_LOKI_MEMBERLIST_IGNORE_SUBNET}
-GF_LOKI_MEMBERLIST_ADVERTISE_ADDR=$(get-memberlist-advertise-addr)
+if [[ -z "${GF_LOKI_ADVERTISE_ADDR}" ]]; then
+  GF_LOKI_ADVERTISE_INTERFACE=${GF_LOKI_ADVERTISE_INTERFACE:-"eth0"}
+  GF_LOKI_ADVERTISE_ADDR=`sockaddr eval 'GetInterfaceIP "'$GF_LOKI_ADVERTISE_INTERFACE'"'`
+  echo "Using $GF_LOKI_ADVERTISE_INTERFACE for GF_LOKI_ADVERTISE_ADDR: $GF_LOKI_ADVERTISE_ADDR"
+fi
 
 # -- Config file contents for Promtail.
 echo "Generate configuration file for Grafana Loki..."
@@ -135,8 +131,8 @@ if [ "$1" = "" ]; then
     set -- loki \
       -config.file=${GF_LOKI_CONFIG_FILE} \
       -common.storage.ring.store=memberlist \
-      -common.storage.ring.instance-addr="${GF_LOKI_MEMBERLIST_ADVERTISE_ADDR}" \
-      -memberlist.advertise-addr="${GF_LOKI_MEMBERLIST_ADVERTISE_ADDR}" \
+      -common.storage.ring.instance-addr="${GF_LOKI_ADVERTISE_ADDR}" \
+      -memberlist.advertise-addr="${GF_LOKI_ADVERTISE_ADDR}" \
       -memberlist.join="dns+tasks.${DOCKERSWARM_SERVICE_NAME}:7946" \
       -memberlist.rejoin-interval=30s \
       -memberlist.dead-node-reclaim-time=1m
